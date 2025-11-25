@@ -4,7 +4,7 @@ const http = require("http"); // 🔥 REQUIRED FOR RENDER
 
 const PORT = process.env.PORT || 3000;
 
-const MONGO_URI = "mongodb+srv://siri:siri@cluster0.ysyftvz.mongodb.net/?appName=Cluster0";
+const MONGO_URI = "mongodb+srv://shivam:shivam@cluster0.ysyftvz.mongodb.net/?appName=Cluster0";
 
 // 1. Create Standard HTTP Server (To satisfy Render Health Check)
 const httpServer = http.createServer((req, res) => {
@@ -69,3 +69,4 @@ io.on("connection", (socket) => {
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
