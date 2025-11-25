@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "socket.io": "^4.7.2",
-    "mongoose": "^8.0.0"  // <--- ADD THIS
+    "mongoose": "^8.0.0"
   }
 }
+
