@@ -4,7 +4,7 @@ const PORT = process.env.PORT || 3000;
 
 const io = new Server(PORT, {
   cors: {
-    origin: "*", // Allow connection from your App
+    origin: "*", 
   }
 });
 
@@ -13,10 +13,13 @@ console.log(`🚀 Chat Server running on port ${PORT}`);
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Listen for a message from the App
   socket.on("send_message", (data) => {
-    // Broadcast it to EVERYONE (including the sender)
     io.emit("receive_message", data);
+  });
+
+  // 🔥 NEW: Handle Delete for Everyone
+  socket.on("delete_message", (messageId) => {
+    io.emit("message_deleted", messageId);
   });
 
   socket.on("disconnect", () => {
