@@ -13,12 +13,14 @@ console.log(`🚀 Chat Server running on port ${PORT}`);
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // 1. Relay Message
   socket.on("send_message", (data) => {
     io.emit("receive_message", data);
   });
 
-  // 🔥 NEW: Handle Delete for Everyone
+  // 2. Relay Delete Signal (Pure Logic, No DB)
   socket.on("delete_message", (messageId) => {
+    console.log("Broadcasting delete for ID:", messageId);
     io.emit("message_deleted", messageId);
   });
 
