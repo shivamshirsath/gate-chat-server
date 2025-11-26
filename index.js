@@ -22,12 +22,12 @@ const MessageSchema = new mongoose.Schema({
   text: String,
   sender: String,
   uid: String,
-  time: Number,
+  time: { type: Number, index: true }, // <--- Added index: true
   isPremium: Boolean,
   replyToId: { type: String, default: null },
   replyToText: { type: String, default: null },
   replyToSender: { type: String, default: null },
-  createdAt: { type: Date, default: Date.now, expires: 604800 } // 7 Days expiry
+  createdAt: { type: Date, default: Date.now, expires: 604800 } 
 });
 
 const Message = mongoose.model("Message", MessageSchema);
@@ -80,3 +80,4 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
+
