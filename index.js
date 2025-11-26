@@ -22,7 +22,7 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("❌ MongoDB Error:", err));
 
-// 4. Define Schema
+// 4. Define Schema (UPDATED FOR REPLY FEATURE)
 const MessageSchema = new mongoose.Schema({
   id: String,
   text: String,
@@ -30,6 +30,13 @@ const MessageSchema = new mongoose.Schema({
   uid: String,
   time: Number,
   isPremium: Boolean,
+  
+  // --- NEW FIELDS FOR REPLY FUNCTIONALITY ---
+  replyToId: { type: String, default: null },     // ID of the message being replied to
+  replyToText: { type: String, default: null },   // Text of the message being replied to
+  replyToSender: { type: String, default: null }, // Sender of the message being replied to
+  // -----------------------------------------
+
   createdAt: { type: Date, default: Date.now, expires: 18000 } 
 });
 
@@ -39,6 +46,7 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   // Load History
+  // We limit to 50, but you might want to increase this slightly if replies take up space visually
   Message.find().sort({ time: 1 }).limit(50)
     .then(messages => socket.emit("load_history", messages))
     .catch(err => console.error("Load Error:", err));
@@ -46,8 +54,12 @@ io.on("connection", (socket) => {
   // Send Message
   socket.on("send_message", async (data) => {
     try {
+      // 'data' now includes the reply fields sent from Flutter
+      // Because we updated the Schema, Mongoose will now save them automatically
       const newMessage = new Message(data);
       await newMessage.save();
+      
+      // Broadcast to everyone (including sender)
       io.emit("receive_message", data);
     } catch(e) { console.error("Save Error", e); }
   });
@@ -65,8 +77,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// 5. 🔥 LISTEN ON THE HTTP SERVER (Not just the Socket)
+// 5. 🔥 LISTEN ON THE HTTP SERVER
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
