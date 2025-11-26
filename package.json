@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "socket.io": "^4.7.2",
-    "mongoose": "^8.0.0"
+    "mongoose": "^8.0.0",
+    "dotenv": "^16.4.5"
   }
 }
