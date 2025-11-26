@@ -1,30 +1,22 @@
 const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const http = require("http"); 
-require("dotenv").config(); // Ensure you have dotenv if using env vars
+require("dotenv").config();
 
 const PORT = process.env.PORT || 3000;
-
-// ⚠️ SECURITY WARNING: In production, use process.env.MONGO_URI
 const MONGO_URI = "mongodb+srv://shivam:shivam@cluster0.ysyftvz.mongodb.net/?appName=Cluster0";
 
-// 1. Create Standard HTTP Server
 const httpServer = http.createServer((req, res) => {
   res.writeHead(200);
-  res.end("Gate Chat Server is Running! 🚀");
+  res.end("Gate Chat Server Running");
 });
 
-// 2. Attach Socket.io
-const io = new Server(httpServer, {
-  cors: { origin: "*" }
-});
+const io = new Server(httpServer, { cors: { origin: "*" } });
 
-// 3. Connect to MongoDB
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("❌ MongoDB Error:", err));
 
-// 4. Define Schema
 const MessageSchema = new mongoose.Schema({
   id: String,
   text: String,
@@ -32,13 +24,10 @@ const MessageSchema = new mongoose.Schema({
   uid: String,
   time: Number,
   isPremium: Boolean,
-  
-  // Reply Fields
   replyToId: { type: String, default: null },
   replyToText: { type: String, default: null },
   replyToSender: { type: String, default: null },
-
-  createdAt: { type: Date, default: Date.now, expires: 18000 } 
+  createdAt: { type: Date, default: Date.now, expires: 604800 } // 7 Days expiry
 });
 
 const Message = mongoose.model("Message", MessageSchema);
@@ -46,25 +35,38 @@ const Message = mongoose.model("Message", MessageSchema);
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Load History (Limit 100 for better context)
-  Message.find().sort({ time: 1 }).limit(100)
-    .then(messages => socket.emit("load_history", messages))
-    .catch(err => console.error("Load Error:", err));
+  // -------------------------------------------------------
+  // 1. SYNC PROTOCOL (The WhatsApp Logic)
+  // -------------------------------------------------------
+  socket.on("request_sync", async (lastKnownTimestamp) => {
+    try {
+      const time = lastKnownTimestamp || 0;
+      console.log(`Client asking for messages since: ${time}`);
 
-  // -----------------------------------------------------------
-  // 🔥 CRITICAL FIX: SEND IMMEDIATELY, SAVE LATER
-  // -----------------------------------------------------------
+      // Get ALL messages after the user's last known time
+      // Limit set to 2000 to prevent crashing if user was gone for months
+      const missedMessages = await Message.find({ time: { $gt: time } })
+                                          .sort({ time: 1 })
+                                          .limit(2000);
+                                          
+      socket.emit("sync_response", missedMessages);
+    } catch (e) {
+      console.error("Sync Error:", e);
+    }
+  });
+
+  // -------------------------------------------------------
+  // 2. LIVE MESSAGING
+  // -------------------------------------------------------
   socket.on("send_message", async (data) => {
-    // 1. Broadcast to everyone INSTANTLY (Fast)
+    // Instant Broadcast
     io.emit("receive_message", data);
 
-    // 2. Save to Database in Background (Slow)
+    // Background Save
     try {
       const newMessage = new Message(data);
       await newMessage.save();
-    } catch(e) { 
-      console.error("Database Save Error (Message was sent though):", e); 
-    }
+    } catch(e) { console.error("Save Error:", e); }
   });
 
   socket.on("delete_message", async (messageId) => {
@@ -74,11 +76,7 @@ io.on("connection", (socket) => {
     } catch(e) { console.error("Delete Error", e); }
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
-  });
+  socket.on("disconnect", () => console.log("User disconnected"));
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+httpServer.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
